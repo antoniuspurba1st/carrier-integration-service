@@ -8,7 +8,11 @@ The module is built around the adapter pattern. `RateService` works with the sha
 
 Validation happens at the boundaries. Incoming rate requests are validated with Zod before any external call is made, environment configuration is validated on load, and UPS responses are validated before they are mapped into domain models. That keeps transport quirks contained inside the adapter and keeps the rest of the codebase working with stable application-level types.
 
-The HTTP layer is abstracted behind `HttpClient`, which keeps axios out of the service logic and makes tests straightforward to stub. Errors are surfaced as `CarrierError` objects with a stable error code, carrier name, retry hint, and upstream status code when one exists.
+The HTTP layer is abstracted behind `HttpClient`, which keeps axios out of the service logic and makes tests straightforward to stub. Carrier adapters call the transport layer through the same interface, so cross-cutting behavior stays centralized.
+
+### HTTP Client Capabilities
+
+The Axios-backed HTTP client includes a lightweight retry policy for transient failures, including network errors, timeouts, and upstream `5xx` responses. It also propagates an `X-Correlation-ID` header on every outbound request so calls can be traced across services and external carrier APIs. When upstream requests fail, the client preserves structured error metadata such as status code, response body, correlation ID, and request URL to make external API issues easier to diagnose.
 
 UPS OAuth is handled transparently by `UpsAuth`. It acquires bearer tokens with the client credentials flow, caches them, reuses them until they are near expiry, and refreshes them when needed, including a forced refresh after a 401 from the rating endpoint.
 
